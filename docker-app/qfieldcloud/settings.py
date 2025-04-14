@@ -513,6 +513,10 @@ AXES_LOCKOUT_PARAMETERS = ["username"]
 AXES_COOLOFF_TIME = lambda _request: timedelta(minutes=30)  # noqa: E731
 # If True, a successful login will reset the number of failed logins. Default: False
 AXES_RESET_ON_SUCCESS = True
+# Log details from failed logins
+AXES_SENSITIVE_PARAMETERS = []
+# Log also successful authentication
+AXES_VERBOSE = True
 
 # Django email configuration
 EMAIL_BACKEND = "django.core.mail.backends.smtp.EmailBackend"
@@ -552,12 +556,31 @@ LOGGING = {
             "filters": ["request_id"],
             "formatter": "json",
         },
+        "audit_file": {
+            "level": "INFO",
+            "class": "logging.FileHandler",
+            "filename": os.path.join(BASE_DIR, "logs", "audit.log"),
+            "formatter": "json",
+        },
     },
     "root": {
         "handlers": ["console.json"],
         "level": "INFO",
     },
+    "loggers": {
+        "axes.handlers.database": {
+            "handlers": ["console.json", "audit_file"],
+            "level": "INFO",
+            "propagate": False,
+        },
+        "auditlog": {
+            "handlers": ["console.json", "audit_file"],
+            "level": "INFO",
+            "propagate": False,
+        },
+    },
 }
+
 
 DEFAULT_AUTO_FIELD = "django.db.models.AutoField"
 
@@ -620,7 +643,7 @@ CONSTANCE_DATABASE_CACHE_BACKEND = "default"
 CONSTANCE_DATABASE_CACHE_AUTOFILL_TIMEOUT = 60 * 60 * 24
 CONSTANCE_CONFIG = {
     "WORKER_TIMEOUT_S": (
-        600,
+        1800,
         "Timeout of the workers before being terminated by the wrapper in seconds.",
         int,
     ),
