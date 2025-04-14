@@ -1,14 +1,24 @@
+from allauth.account.models import EmailAddress
+from allauth.account.signals import user_signed_up
 from allauth.socialaccount.adapter import get_adapter
 from allauth.socialaccount.providers.base import Provider
 from allauth.socialaccount.providers.oauth2.views import OAuth2Adapter
 from django.conf import settings
+from django.contrib import messages
 from django.contrib.auth import get_user_model
 from django.core.exceptions import ObjectDoesNotExist
-from django.http import HttpRequest
+from django.dispatch import receiver
+from django.http import HttpRequest, HttpResponse
+from django.shortcuts import redirect
 from django.utils import timezone
 from django.utils.decorators import method_decorator
 from django.utils.translation import gettext as _
 from django.views.decorators.debug import sensitive_post_parameters
+from invitations.adapters import get_invitations_adapter
+from invitations.app_settings import app_settings
+from invitations.models import Invitation
+from invitations.signals import invite_accepted
+from invitations.views import AcceptInvite
 from rest_framework import status
 from rest_framework.authtoken.views import ObtainAuthToken
 from rest_framework.generics import RetrieveAPIView
@@ -218,3 +228,76 @@ class ListProvidersView(APIView):
             return self.FLOW_AUTHORIZATION_CODE_PKCE
 
         return self.FLOW_AUTHORIZATION_CODE
+
+
+class DelayedAcceptInviteView(AcceptInvite):
+    # Override post() with no accept_invitation, everything else same as AcceptInvite
+    def post(self, *args, **kwargs):
+        self.object = invitation = self.get_object()
+
+        # Compatibility with older versions: return an HTTP 410 GONE if there
+        # is an error. # Error conditions are: no key, expired key or
+        # previously accepted key.
+        if app_settings.GONE_ON_ACCEPT_ERROR and (
+            not invitation
+            or (invitation and (invitation.accepted or invitation.key_expired()))
+        ):
+            return HttpResponse(status=410)
+
+        # No invitation was found.
+        if not invitation:
+            # Newer behavior: show an error message and redirect.
+            get_invitations_adapter().add_message(
+                self.request,
+                messages.ERROR,
+                "invitations/messages/invite_invalid.txt",
+            )
+            return redirect(app_settings.LOGIN_REDIRECT)
+
+        # The invitation was previously accepted, redirect to the login
+        # view.
+        if invitation.accepted:
+            get_invitations_adapter().add_message(
+                self.request,
+                messages.ERROR,
+                "invitations/messages/invite_already_accepted.txt",
+                {"email": invitation.email},
+            )
+            # Redirect to login since there's hopefully an account already.
+            return redirect(app_settings.LOGIN_REDIRECT)
+
+        # The key was expired.
+        if invitation.key_expired():
+            get_invitations_adapter().add_message(
+                self.request,
+                messages.ERROR,
+                "invitations/messages/invite_expired.txt",
+                {"email": invitation.email},
+            )
+            # Redirect to sign-up since they might be able to register anyway.
+            return redirect(self.get_signup_redirect())
+
+        get_invitations_adapter().stash_verified_email(self.request, invitation.email)
+
+        return redirect(self.get_signup_redirect())
+
+
+# Mark invitations as acceped on user_signed_up signal
+# from: https://gist.github.com/nsomaru/53d0caf0981b56d57d77649b29c8cd1d
+@receiver(user_signed_up)
+def accept_invite(sender, request, user, **kwargs):
+    # Traverse from the user to verified email addresses. It is possible for a
+    # user to already have multiple email addresses if they typed in a different
+    # email after accepted the invite. In this case, the user will have two
+    # emails, but only one will be verified.
+    addresses = EmailAddress.objects.filter(user=user, verified=True).values_list(
+        "email", flat=True
+    )
+    # Check if any invites exist for this address and were accepted.
+    invites = Invitation.objects.filter(email__in=addresses)
+    if invites:
+        # Mark all these invites as accepted.
+        invites.update(accepted=True)
+        for invite in invites:
+            # Note that this doesn't send it with a request.
+            invite_accepted.send(sender=Invitation, email=invite.email)
