@@ -34,34 +34,9 @@ upstream django {
   server app:8000 fail_timeout=0;
 }
 
-server {
-  listen 80;
-  server_name ${QFIELDCLOUD_HOST};
-
-  # cerbot
-  location /.well-known/acme-challenge/ {
-    root /var/www/certbot;
-  }
-
-  # prevent access by IP
-  if ($http_host !~ "${QFIELDCLOUD_HOST}(:${WEB_HTTP_PORT})?") {
-    return 444;
-  }
-
-  # use $WEB_HTTPS_PORT in the configuration, since it might be different from 443 (e.g. localhost)
-  location / {
-    return 302 https://$host:${WEB_HTTPS_PORT}$request_uri;
-  }
-}
 
 server {
-  listen 443 ssl;
-
-  ssl_certificate     ${QFIELDCLOUD_TLS_CERT};
-  ssl_certificate_key ${QFIELDCLOUD_TLS_KEY};
-
-  ssl_dhparam ${QFIELDCLOUD_TLS_DHPARAMS};
-  include /etc/nginx/options-ssl-nginx.conf;
+  listen ${NGINX_PORT};
 
   access_log /var/log/nginx/access.log json-logger;
   error_log /var/log/nginx/error.log ${NGINX_ERROR_LOG_LEVEL};
@@ -73,27 +48,12 @@ server {
   # path for static files (only needed for serving local staticfiles)
   root /var/www/html/;
 
-  # upgrade to https
-  error_page 497 https://$host:${WEB_HTTPS_PORT}$request_uri;
-
-  # prevent access by IP
-  if ($http_host !~ "${QFIELDCLOUD_HOST}(:${WEB_HTTPS_PORT})?") {
-    return 444;
-  }
-
-  # include additional config from the current QFieldCloud instance. This is different from the default `conf.d` directory.
-  include config.d/*.conf;
-
-  # deny annoying bot
-  deny 34.215.13.216;
-
   # checks for static file, if not found proxy to app
   location / {
     try_files $uri @proxy_to_app;
   }
 
   location /swagger.yaml {
-    add_header Access-Control-Allow-Origin https://docs.qfield.org;
     proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
     proxy_set_header X-Forwarded-Proto $scheme;
     proxy_set_header Host $http_host;
@@ -111,7 +71,7 @@ server {
 
     proxy_set_header Connection '';
     proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-    proxy_set_header X-Forwarded-Proto $scheme;
+    proxy_set_header X-Forwarded-Proto https;
     proxy_set_header X-Request-Id $request_id;
     proxy_set_header Host $http_host;
 
@@ -132,7 +92,7 @@ server {
     set $webdav_auth "$upstream_http_webdav_auth";
 
     # required DNS
-    resolver 8.8.8.8;
+    resolver ${RESOLVER_FOR_NGINX};
 
     # Stops the local disk from being written to (just forwards data through)
     proxy_max_temp_file_size 0;
