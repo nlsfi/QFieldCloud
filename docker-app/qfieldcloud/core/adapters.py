@@ -34,6 +34,15 @@ class AccountAdapter(DefaultAccountAdapter, BaseInvitationsAdapter):
         user = Person()
         return user
 
+    # Somehow BaseInvitationsAdapter is not inherited properly, method is_open_for_signup
+    # adapted from: https://github.com/jazzband/django-invitations/blob/master/invitations/adapters.py#L71
+    def is_open_for_signup(self, request):
+        if hasattr(request, "session") and request.session.get(
+            "account_verified_email",
+        ):
+            return True
+        return False
+
     def clean_username(self, username, shallow=False):
         result = super().clean_username(username, shallow)
 
