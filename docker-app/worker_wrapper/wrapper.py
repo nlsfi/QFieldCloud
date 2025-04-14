@@ -1,5 +1,6 @@
 import json
 import logging
+import os
 import shutil
 import sys
 import tempfile
@@ -173,6 +174,11 @@ class JobRun:
             "JOB_ID": self.job_id,
             "PROJ_DOWNLOAD_DIR": TRANSFORMATION_GRIDS_PATH,
             "QT_QPA_PLATFORM": "offscreen",
+            "PGPORT": os.environ.get("PGPORT"),
+            "PGHOST": os.environ.get("PGHOST"),
+            "PGUSER": os.environ.get("PGUSER"),
+            "PGPASSWORD": os.environ.get("PGPASSWORD"),
+            "PGOPTIONS": os.environ.get("PGOPTIONS"),
         }
 
         return environment
@@ -390,8 +396,6 @@ class JobRun:
             # auto_remove=True,
             network=settings.QFIELDCLOUD_DEFAULT_NETWORK,
             detach=True,
-            mem_limit=config.WORKER_QGIS_MEMORY_LIMIT,
-            cpu_shares=config.WORKER_QGIS_CPU_SHARES,
             labels={
                 "app": f"{settings.ENVIRONMENT}_worker",
                 "type": self.job.type,
