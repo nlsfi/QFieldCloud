@@ -6,6 +6,7 @@ from allauth.socialaccount.providers.oauth2.views import OAuth2Adapter
 from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth import get_user_model
+from django.contrib.auth.signals import user_logged_in
 from django.core.exceptions import ObjectDoesNotExist
 from django.dispatch import receiver
 from django.http import HttpRequest, HttpResponse
@@ -76,6 +77,8 @@ class LoginView(ObtainAuthToken):
         serializer = TokenSerializer(
             instance=self.token, context={"request": self.request}
         )
+        user = validated_data["user"]
+        user_logged_in.send(sender=user.__class__, request=request, user=user)
         return Response(serializer.data, status=status.HTTP_200_OK)
 
 
