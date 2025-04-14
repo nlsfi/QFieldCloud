@@ -20,4 +20,6 @@ class AuthConfig(AppConfig):
         from .conf import settings  # noqa
 
     def ready(self):
+        import qfieldcloud.authentication.signals  # noqa
+
         self.initialize()
