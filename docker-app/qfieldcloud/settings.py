@@ -233,12 +233,21 @@ AUTH_PASSWORD_VALIDATORS = [
     },
     {
         "NAME": "django.contrib.auth.password_validation.MinimumLengthValidator",
+        "OPTIONS": {
+            "min_length": 16,
+        },
     },
     {
         "NAME": "django.contrib.auth.password_validation.CommonPasswordValidator",
     },
     {
         "NAME": "django.contrib.auth.password_validation.NumericPasswordValidator",
+    },
+    {
+        "NAME": "qfieldcloud.authentication.password_validators.ContainsUppercaseValidator",
+    },
+    {
+        "NAME": "qfieldcloud.authentication.password_validators.ContainsSpecialCharactersValidator",
     },
 ]
 
