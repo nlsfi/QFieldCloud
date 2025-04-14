@@ -494,6 +494,8 @@ ACCOUNT_RATE_LIMITS = False
 # For now, the default is set to `True` to maintain backwards compatibility.
 ACCOUNT_PRESERVE_USERNAME_CASING = True
 
+INVITATIONS_ADAPTER = ACCOUNT_ADAPTER
+
 # Django allauth's social account configuration
 # https://docs.allauth.org/en/latest/socialaccount/configuration.html
 SOCIALACCOUNT_ADAPTER = "qfieldcloud.core.adapters.SocialAccountAdapter"
@@ -614,7 +616,7 @@ DEFAULT_FROM_EMAIL = os.environ.get("DEFAULT_FROM_EMAIL")
 # Django invitations configurations
 # https://github.com/bee-keeper/django-invitations#additional-configuration
 INVITATIONS_INVITATION_EXPIRY = 365  # integer in days, 0 disables invitations
-INVITATIONS_INVITATION_ONLY = False
+INVITATIONS_INVITATION_ONLY = os.environ.get("INVITATIONS_INVITATION_ONLY", False)
 # INVITATIONS_ACCEPT_INVITE_AFTER_SIGNUP = True
 INVITATIONS_GONE_ON_ACCEPT_ERROR = False
 
