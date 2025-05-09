@@ -314,6 +314,7 @@ class JobRun:
                 "PGHOST": os.environ.get("PGHOST"),
                 "PGUSER": os.environ.get("PGUSER"),
                 "PGPASSWORD": os.environ.get("PGPASSWORD"),
+                "PGOPTIONS": os.environ.get("PGOPTIONS"),
             },
             volumes=volumes,
             # TODO stream the logs to something like redis, so they can be streamed back in project jobs page to the user live
