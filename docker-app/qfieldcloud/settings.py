@@ -256,7 +256,7 @@ AUTH_PASSWORD_VALIDATORS = [
 # Internationalization
 # https://docs.djangoproject.com/en/2.2/topics/i18n/
 
-LANGUAGE_CODE = os.environ.get("QFIELDCLOUD_DEFAULT_LANGUAGE") or "en"
+LANGUAGE_CODE = "fi"
 
 TIME_ZONE = os.environ.get("QFIELDCLOUD_DEFAULT_TIME_ZONE") or "Europe/Zurich"
 
@@ -273,6 +273,7 @@ LANGUAGES = [
     ("fr", "French"),
     ("it", "Italian"),
     ("km", "Khmer"),
+    ("fi", "Finnish"),
 ]
 
 # Static files (CSS, JavaScript, Images)
