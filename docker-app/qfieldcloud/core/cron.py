@@ -106,3 +106,36 @@ class DeleteObsoleteProjectPackagesJob(CronJobBase):
         )
 
         packages.delete_obsolete_packages(projects)
+
+
+class RescheduleFailedApplyJobs(CronJobBase):
+    schedule = Schedule(run_every_mins=60)
+    code = "qfieldcloud.reschedule_failed_apply_jobs"
+
+    def do(self):
+        # Find every failed apply job and create a new one with the deltas that failed
+        failed_apply_jobs = ApplyJob.objects.filter(status=ApplyJob.Status.FAILED)
+        for job in failed_apply_jobs:
+            new_apply_job = ApplyJob.objects.create(
+                project=job.project,
+                created_by=job.created_by,
+                overwrite_conflicts=job.overwrite_conflicts,
+            )
+            failed_deltas = job.deltas_to_apply.filter(last_status=Delta.Status.ERROR)
+            if not failed_deltas.exists():
+                continue
+
+            failed_delta_ids = list(failed_deltas.values_list("pk", flat=True))
+            failed_deltas.update(last_status=Delta.Status.PENDING)
+
+            ApplyJobDelta.objects.bulk_create(
+                [
+                    ApplyJobDelta(
+                        apply_job=new_apply_job,
+                        delta=delta,
+                    )
+                    for delta in Delta.objects.filter(pk__in=failed_delta_ids).order_by(
+                        "created_at"
+                    )
+                ]
+            )
