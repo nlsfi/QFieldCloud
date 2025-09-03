@@ -1,5 +1,6 @@
 from django.contrib.auth import get_user_model
 from django.db import transaction
+from django.db.models import F
 from django_filters import rest_framework as filters
 from drf_spectacular.utils import (
     extend_schema,
@@ -10,6 +11,7 @@ from qfieldcloud.core.drf_utils import QfcOrderingFilter
 from qfieldcloud.core.exceptions import ObjectNotFoundError
 from qfieldcloud.core.filters import ProjectFilterSet
 from qfieldcloud.core.models import Project, ProjectQueryset
+from qfieldcloud.core.permissions_utils import IsAdminUser
 from qfieldcloud.core.serializers import ProjectSerializer
 from qfieldcloud.core.utils2 import storage
 from qfieldcloud.subscription.exceptions import QuotaError
@@ -147,6 +149,16 @@ class ProjectViewSet(viewsets.ModelViewSet):
             storage.delete_all_project_files_permanently(projectid)
 
         return super().destroy(request, projectid)
+
+
+class ProjectViewSetAdmin(ProjectViewSet):
+    permission_classes = [IsAdminUser]
+
+    def get_queryset(self):
+        # .annotate() adapted from ProjectQueryset.for_user
+        return Project.objects.all().annotate(
+            user_role=F("user_roles__name"), user_role_origin=F("user_roles__origin")
+        )
 
 
 @extend_schema_view(get=extend_schema(description="List all public projects"))
