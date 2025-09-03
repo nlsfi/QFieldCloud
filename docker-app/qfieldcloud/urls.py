@@ -126,4 +126,8 @@ urlpatterns = [
     path("invitations/", include("invitations.urls", namespace="invitations")),
     path("__debug__/", include("debug_toolbar.urls")),
     path("a/<str:username>/<str:project_name>/", redirect_to_admin_project_view),
+    path("api/sdk/auth/login/", auth_views.LoginView.as_view()),
+    path("api/sdk/auth/token/", auth_views.LoginView.as_view()),
+    path("api/sdk/auth/user/", auth_views.UserView.as_view()),
+    path("api/sdk/", include("qfieldcloud.core.urls-sdk")),
 ]
