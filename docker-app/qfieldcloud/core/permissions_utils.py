@@ -1,6 +1,7 @@
 from typing import Literal
 
 from django.utils.translation import gettext as _
+from rest_framework.permissions import BasePermission
 
 from qfieldcloud.authentication.models import AuthToken
 from qfieldcloud.core.models import (
@@ -46,6 +47,11 @@ class TeamOrganizationRoleError(CheckPermError): ...
 
 
 class ExpectedPremiumUserError(CheckPermError): ...
+
+
+class IsAdminUser(BasePermission):
+    def has_permission(self, request, view):
+        return request.user and request.user.is_superuser
 
 
 def user_eq(user1: QfcUser, user2: QfcUser) -> bool:

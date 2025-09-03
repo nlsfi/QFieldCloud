@@ -26,6 +26,7 @@ from qfieldcloud.core.models import (
     Project,
     UserAccount,
 )
+from qfieldcloud.core.permissions_utils import IsAdminUser
 from qfieldcloud.core.views.files_views import (
     DownloadPushDeleteFileView as LegacyFileCrudView,
 )
@@ -124,6 +125,10 @@ class FileListView(generics.ListAPIView):
         return qs
 
 
+class FileListViewAdmin(FileListView):
+    permission_classes = [IsAdminUser]
+
+
 class FileCrudView(views.APIView):
     permission_classes = [permissions.IsAuthenticated, FileCrudViewPermissions]
 
@@ -174,6 +179,10 @@ class FileCrudView(views.APIView):
         delete_project_file_version(request, project_id, filename)
 
         return Response(status=status.HTTP_204_NO_CONTENT)
+
+
+class FileCrudViewAdmin(FileCrudView):
+    permission_classes = [IsAdminUser]
 
 
 @extend_schema_view(
