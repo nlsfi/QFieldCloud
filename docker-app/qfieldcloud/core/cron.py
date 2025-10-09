@@ -2,6 +2,7 @@ import logging
 from datetime import timedelta
 
 from constance import config
+from django.db import models
 from django.utils import timezone
 from django_cron import CronJobBase, Schedule
 from invitations.utils import get_invitation_model
@@ -114,7 +115,12 @@ class RescheduleFailedApplyJobs(CronJobBase):
 
     def do(self):
         # Find every failed apply job and create a new one with the deltas that failed
-        failed_apply_jobs = ApplyJob.objects.filter(status=ApplyJob.Status.FAILED)
+
+        failed_apply_jobs = (
+            ApplyJob.objects.filter(status=ApplyJob.Status.FAILED)
+            .annotate(delta_count=models.Count("applyjobdelta"))
+            .filter(delta_count__gt=0)
+        )
         for job in failed_apply_jobs:
             new_apply_job = ApplyJob.objects.create(
                 project=job.project,
