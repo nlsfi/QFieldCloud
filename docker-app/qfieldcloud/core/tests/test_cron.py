@@ -113,6 +113,19 @@ class RescheduleFailedApplyJobsTestCase(TestCase):
         self.assertEqual(d1.last_status, Delta.Status.APPLIED)
         self.assertEqual(d4.last_status, Delta.Status.APPLIED)
 
+    def test_failed_jobs_without_deltas_are_not_considered(self):
+        ApplyJob.objects.create(
+            project=self.project1,
+            created_by=self.user,
+            overwrite_conflicts=True,
+            status=ApplyJob.Status.FAILED,
+        )
+
+        RescheduleFailedApplyJobs().do()
+
+        # No new apply jobs should be created
+        self.assertEqual(ApplyJob.objects.count(), 1)
+
     def test_multiple_failed_apply_jobs(self):
         # First failed job
         aj1 = ApplyJob.objects.create(
