@@ -28,6 +28,7 @@ from qgis.core import (
     QgsProject,
     QgsProjectArchive,
     QgsProviderRegistry,
+    QgsSettings,
     QgsZipUtils,
 )
 from qgis.PyQt import QtCore, QtGui
@@ -149,6 +150,8 @@ def start_app() -> str:
         QtCore.qInstallMessageHandler(_qt_message_handler)
         os.environ["QGIS_CUSTOM_CONFIG_PATH"] = tempfile.mkdtemp("", "QGIS_CONFIG")
         QGISAPP.initQgis()
+        settings = QgsSettings()
+        settings.setValue("network/network-timeout", 3000)
 
         QtCore.qInstallMessageHandler(_qt_message_handler)
         QgsApplication.messageLog().messageReceived.connect(_write_log_message)
